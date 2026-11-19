@@ -75,7 +75,7 @@
 <div id="s-title" class="screen on">
   <div class="panel clear">
     <h1>캥거루 점프</h1>
-    <p class="sub">호주에서 한국까지, 세계 일주 대모험!</p>
+    <p class="sub">운명의 짝을 찾아 호주에서 한국까지!</p>
     <div class="stats"><span class="chip" id="t-best">🏆 0</span><span class="chip" id="t-coins">🪙 0</span></div>
     <button class="btn" id="b-start">시작하기</button>
     <div class="row">
@@ -141,12 +141,12 @@
 
 <div id="s-clear" class="screen">
   <div class="panel">
-    <h2>🌏 세계 일주 완주!</h2>
-    <p class="sub">🇦🇺 호주에서 🇰🇷 한국까지 다 달렸어요</p>
+    <h2 id="cl-title">💕 THE END 💕</h2>
+    <p class="sub" id="cl-sub">캥거루는 한국 동물원에서 운명의 짝을 만났어요</p>
     <div class="big" id="cl-score">0</div>
     <div id="cl-badge"></div>
-    <div class="stats"><span class="chip">🪙 +100 보너스</span></div>
-    <button class="btn" id="b-lap">한 바퀴 더! (더 빨라요)</button>
+    <div class="stats"><span class="chip" id="cl-bonus">🪙 +100 보너스</span></div>
+    <button class="btn" id="b-lap">2부: 동물원 탈출! 🏃</button>
     <button class="btn sec" id="b-home2">여기서 끝내기</button>
   </div>
 </div>
@@ -202,7 +202,17 @@
     { name: '한국', flag: '🇰🇷', ground: '#7fae5a', line: '#668f46', dirt: '#729f50', hill1: '#9fc3a6', hill2: '#7aa88a', rock: '#8a8a84',
       marks: ['seoul', 'gate'], bg: ['tiger', 'bear'], obs: ['jindo', 'jangdok', 'harubang', 'jangdoks', 'jindo'], tall: 'cheomseongdae', bird: 'kkachi' },
   ];
+  const ZOO_LEN = 600;
+  const ZOO = [
+    { name: '동물원 우리', flag: '🦁', ground: '#cdb88e', line: '#ad9870', dirt: '#bea97f', hill1: '#a8cf96', hill2: '#86b876', rock: '#8a8a84',
+      marks: ['cage', 'cage'], bg: ['tiger', 'bear', 'zebra', 'elephant', 'lion'], obs: ['fence', 'trashcan', 'keeper', 'trashcan'], tall: 'bars', bird: 'pigeon' },
+    { name: '놀이 광장', flag: '🎡', ground: '#d9c9b2', line: '#b8a68c', dirt: '#cbb9a0', hill1: '#bcd9ea', hill2: '#a3c8de', rock: '#8a8a84',
+      marks: ['ferris', 'cage'], bg: ['sheep', 'alpaca'], obs: ['icecart', 'stroller', 'trashcan', 'cone'], tall: 'balloons', bird: 'pigeon' },
+    { name: '정문', flag: '🚪', ground: '#b9b2a6', line: '#9a9286', dirt: '#aaa397', hill1: '#c9d6b8', hill2: '#aec29a', rock: '#8a8a84',
+      marks: ['cage', 'ferris'], bg: ['bear', 'tiger'], obs: ['keeper', 'cone', 'keeper', 'trashcan', 'fence'], tall: 'bars', bird: 'pigeon' },
+  ];
   const OB = {
+    fence: [50, 24], trashcan: [22, 30], icecart: [44, 41], keeper: [24, 48], cone: [18, 24], stroller: [38, 34], bars: [40, 172], balloons: [36, 172],
     rock: [28, 22], rocks: [54, 20], bush: [34, 38], mound: [24, 50], giantmound: [38, 172], wombat: [32, 22],
     meerkat: [16, 32], warthog: [40, 26], giraffe: [44, 165],
     hedgehog: [26, 18], corgi: [40, 26], phonebox: [24, 50], postbox: [20, 36], bus: [100, 150],
@@ -217,6 +227,7 @@
     condor: ['#1e1e1e', '#f4f4f4', '#d98a7a', '#e8d8b0', '#2b2b2b'],
     eagle: ['#4a2f1d', '#5a3a24', '#ffffff', '#f2c230', '#3a2416'],
     kkachi: ['#151a2a', '#f4f4f4', '#151a2a', '#2b2b2b', '#24407a'],
+    pigeon: ['#8d93a0', '#c9ccd4', '#6a7180', '#e0b48a', '#737a88'],
   };
   const hex = h => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
   const rgb = a => `rgb(${a[0]},${a[1]},${a[2]})`;
@@ -256,6 +267,7 @@
   const G = 2200, G_HOLD = 990, JUMP_V = -560, DJUMP_V = -500, DAY_LEN = 110, INV_TIME = 5;
   let state = 'menu', t = 0;
   let speed, maxSpeed, dist, bonus, score, runCoins, committed, lastMilestone, flash, inv, shake, runTime, lap;
+  let route = REGIONS, routeStart = 0, chapter = 1, prevObj = REGIONS[0], storyT = 0, partner = null, yHist = [];
   let curRegion = 0, prevRegion = 0, blend = 1, banner = null, tallHinted = false, fwT = 0;
   let fx = [], trailT = 0, revives = 0, pendingRank = false, distBonusGiven = 0;
   let roo = null, obs = [], coins = [], items = [], dust = [], pops = [], marks = [], bgs = [], toNext = 0, nextMark = 0, nextBg = 0, holding = false;
@@ -265,6 +277,7 @@
     speed = 300; maxSpeed = 780; dist = 0; bonus = 0; score = 0; runCoins = 0; committed = 0;
     lastMilestone = 0; flash = 0; inv = 0; shake = 0; runTime = 0; lap = 0;
     curRegion = 0; prevRegion = 0; blend = 1; banner = null; tallHinted = false;
+    route = REGIONS; routeStart = 0; chapter = 1; prevObj = REGIONS[0]; storyT = 0; partner = null; yHist = [];
     roo = { x: 60, y: groundY, vy: 0, onGround: true, jumps: 0, dead: false, sq: 0, sqType: '', trail: [], flip: 0, shield: false }; fx = []; revives = 0; pendingRank = false; distBonusGiven = 0;
     obs = []; coins = []; items = []; dust = []; pops = []; toNext = 460;
     marks = [{ x: (W || 420) * 0.45, kind: REGIONS[0].marks[0] }]; nextMark = 700;
@@ -280,9 +293,11 @@
   window.addEventListener('resize', resize);
 
   const journey = () => Math.floor(dist / 12);
-  const lapPos = () => journey() - lap * FINISH;
+  const lapPos = () => journey() - routeStart;
+  const routeLen = () => route.length * (route === ZOO ? ZOO_LEN : REGION_LEN);
+  const segLen = () => (route === ZOO ? ZOO_LEN : REGION_LEN);
   function regionColor(key) {
-    const a = hex(REGIONS[prevRegion][key]), b = hex(REGIONS[curRegion][key]);
+    const a = hex(prevObj[key]), b = hex(route[curRegion][key]);
     return rgb(mixArr(a, b, blend));
   }
 
@@ -297,6 +312,7 @@
   function goTitle() { finalizeRank(); state = 'menu'; reset(); refreshTitle(); show('s-title'); }
   function startGame() {
     finalizeRank(); initAudio(); reset(); holding = false; state = 'play'; show(null);
+    banner = { txt: '🦘 운명의 짝을 찾아 출발!', life: 3, max: 3 };
     if ((save.shields || 0) > 0) { save.shields--; roo.shield = true; persist(); pops.push({ x: W / 2, y: hudY() + 116, txt: '🛡️ 방패 장착!', life: 1.8, big: true }); }
   }
   function pause() { if (state !== 'play') return; state = 'paused'; holding = false; show('s-pause'); }
@@ -304,8 +320,20 @@
   function quitRun() { commitCoins(); if (score > save.best) save.best = score; persist(); goTitle(); }
   function finishRun() { commitCoins(); if (score > save.best) save.best = score; addRank(score); checkUnlocks(); persist(); goTitle(); }
   function nextLap() {
-    lap++; maxSpeed = 780 + 70 * lap; speed = Math.max(speed, 420);
-    obs = []; coins = []; items = []; toNext = 520; holding = false;
+    prevObj = route[curRegion];
+    if (chapter === 1) {
+      chapter = 2; route = ZOO;
+      banner = { txt: '🏃 2부: 둘이 함께 동물원 탈출!', life: 3.2, max: 3.2 };
+    } else {
+      chapter = 1; route = REGIONS; lap++; maxSpeed = 780 + 70 * lap;
+      banner = { txt: `🔁 ${lap + 1}바퀴째! 🇦🇺 다시 호주로`, life: 3, max: 3 };
+    }
+    routeStart = journey(); curRegion = 0; prevRegion = 0; blend = 0;
+    speed = Math.max(speed, 420);
+    obs = []; coins = []; items = []; toNext = 520; holding = false; dust = [];
+    marks = marks.filter(m => m.x < W); bgs = bgs.filter(a => a.x < W); nextMark = 60; nextBg = 30;
+    partner = chapter === 2 ? { x: roo.x - 62 } : null; yHist = [];
+    fanfare();
     state = 'play'; show(null);
   }
 
@@ -420,7 +448,7 @@
   }
   function addRank(s) {
     const d = new Date();
-    const entry = { id: Date.now(), s, d: `${d.getMonth() + 1}.${d.getDate()}`, f: REGIONS[curRegion].flag };
+    const entry = { id: Date.now(), s, d: `${d.getMonth() + 1}.${d.getDate()}`, f: route[curRegion].flag };
     save.ranks.push(entry);
     save.ranks.sort((a, b) => b.s - a.s);
     save.ranks = save.ranks.slice(0, 10);
@@ -481,8 +509,8 @@
   }
 
   function spawn(gap) {
-    const R = REGIONS[curRegion], x = W + 40, lp = lapPos();
-    if (lp > FINISH - 80) return 0;
+    const R = route[curRegion], x = W + 40, lp = lapPos();
+    if (lp > routeLen() - 80) return 0;
     if (journey() > 250 && Math.random() < 0.22) {
       const high = Math.random() < 0.5;
       const bottom = high ? groundY - 60 : groundY - 24;
@@ -531,12 +559,12 @@
       for (const m of marks) m.x -= scroll * 0.22 * dt;
       marks = marks.filter(m => m.x > -320);
       nextMark -= scroll * 0.22 * dt;
-      if (nextMark <= 0) { marks.push({ x: W + 30, kind: pick(REGIONS[curRegion].marks) }); nextMark = rand(560, 820); }
+      if (nextMark <= 0) { marks.push({ x: W + 30, kind: pick(route[curRegion].marks) }); nextMark = rand(560, 820); }
       for (const a of bgs) a.x -= scroll * 0.5 * dt;
       bgs = bgs.filter(a => a.x > -160);
       nextBg -= scroll * 0.5 * dt;
-      if (nextBg <= 0) { bgs.push({ x: W + 20, kind: pick(REGIONS[curRegion].bg) }); nextBg = rand(1100, 1800); }
-      for (const d of dust) { d.x += (d.vx - (d.still ? 0 : scroll)) * dt; d.y += d.vy * dt; d.vy += 300 * dt; d.life -= dt; }
+      if (nextBg <= 0) { bgs.push({ x: W + 20, kind: pick(route[curRegion].bg) }); nextBg = rand(1100, 1800); }
+      for (const d of dust) { d.x += (d.vx - (d.still ? 0 : scroll)) * dt; d.y += d.vy * dt; if (!d.heart) d.vy += 300 * dt; d.life -= dt; }
       dust = dust.filter(d => d.life > 0);
       for (const f of fx) { f.r += 110 * dt; f.life -= dt; f.x -= scroll * dt; }
       fx = fx.filter(f => f.life > 0);
@@ -544,7 +572,7 @@
       for (const g of roo.trail) { g.life -= dt; g.x -= scroll * dt; }
       roo.trail = roo.trail.filter(g => g.life > 0);
       if (roo.flip > 0) roo.flip -= dt;
-      for (const p of pops) { p.y -= (p.big ? 8 : 40) * dt; p.life -= dt; }
+      for (const p of pops) { p.y -= (p.big || p.say ? 8 : 40) * dt; p.life -= dt; }
       pops = pops.filter(p => p.life > 0);
       if (flash > 0) flash -= dt;
       if (shake > 0) shake -= dt;
@@ -552,7 +580,15 @@
       if (banner) { banner.life -= dt; if (banner.life <= 0) banner = null; }
     }
     if (state === 'clear') {
-      roo.y = groundY; fwT -= dt;
+      roo.y = groundY; fwT -= dt; storyT += dt;
+      if (chapter === 1 && partner) {
+        const target = roo.x + 64;
+        if (partner.x > target) partner.x = Math.max(target, partner.x - 150 * dt);
+        if (storyT > 0.5 && !partner.s1) { partner.s1 = true; pops.push({ x: roo.x + 30, y: groundY - 95, txt: '여기가... 한국 동물원?', life: 1.8, say: true }); }
+        if (storyT > 2.4 && !partner.s2) { partner.s2 = true; pops.push({ x: partner.x + 26, y: groundY - 95, txt: '어서 와! 기다렸어 💕', life: 2.2, say: true }); beep(880, 1320, 0.2, 'triangle', 0.05); }
+        if (storyT > 2.4 && fwT <= 0) { fwT = 0.22; dust.push({ x: rand(roo.x + 30, roo.x + 90), y: groundY - 50, vx: rand(-15, 15), vy: rand(-70, -40), life: 1.6, max: 1.6, c: '255,105,150', still: true, heart: true }); }
+        return;
+      }
       if (fwT <= 0) {
         fwT = 0.38;
         const cols = ['255,90,90', '255,210,80', '120,200,255', '160,255,160', '255,150,230'];
@@ -575,15 +611,15 @@
 
     // 지역 이동
     const lp = lapPos();
-    const ri = Math.max(0, Math.min(5, Math.floor(lp / REGION_LEN)));
+    const ri = Math.max(0, Math.min(route.length - 1, Math.floor(lp / segLen())));
     if (ri !== curRegion) {
-      prevRegion = curRegion; curRegion = ri; blend = 0;
+      prevObj = route[curRegion]; prevRegion = curRegion; curRegion = ri; blend = 0;
       marks = marks.filter(m => m.x < W); bgs = bgs.filter(m => m.x < W); nextMark = Math.min(nextMark, 60); nextBg = Math.min(nextBg, 30);
-      const R = REGIONS[ri];
-      banner = { txt: (lap > 0 && ri === 0) ? `🔁 ${lap + 1}바퀴째! ${R.flag} ${R.name}` : `✈️ ${R.flag} ${R.name} 도착!`, life: 3, max: 3 };
+      const R = route[ri];
+      banner = { txt: route === ZOO ? (ri === 2 ? '🚪 정문이 보인다! 조금만 더!' : `${R.flag} ${R.name}로 도망치자!`) : `✈️ ${R.flag} ${R.name} 도착!`, life: 3, max: 3 };
       fanfare();
     }
-    if (lp >= FINISH) { clearRun(); return; }
+    if (lp >= routeLen()) { clearRun(); return; }
 
     // 캥거루
     if (!roo.onGround) {
@@ -664,7 +700,7 @@
       if (state !== 'over') return;
       $('o-title').textContent = newBest ? '새 최고 기록!' : '으악!';
       $('o-score').textContent = score;
-      let badge = `<span class="badge">${REGIONS[curRegion].flag} ${REGIONS[curRegion].name}까지 왔어요</span>`;
+      let badge = `<span class="badge">${route[curRegion].flag} ${route[curRegion].name}까지 왔어요</span>`;
       if (unlocked) badge = `<span class="badge">🎉 ${unlocked.name} 해금!</span>`;
       else if (rankIdx >= 0 && rankIdx < 3 && save.ranks.length > 1) badge += ` <span class="badge">내 기록 ${rankIdx + 1}위</span>`;
       $('o-badge').innerHTML = badge;
@@ -698,19 +734,26 @@
   function clearRun() {
     state = 'clear'; holding = false; roo.onGround = true; roo.y = groundY; roo.vy = 0;
     obs = []; items = []; fwT = 0;
-    save.cleared = (save.cleared || 0) + 1;
-    runCoins += 100; commitCoins();
+    const ch1 = chapter === 1;
+    if (ch1) save.cleared = (save.cleared || 0) + 1; else save.escaped = (save.escaped || 0) + 1;
+    runCoins += ch1 ? 100 : 150; commitCoins();
+    storyT = 0;
+    if (ch1) partner = { x: W + 30, face: -1 };
     if (score > save.best) save.best = score;
     const unlocked = checkUnlocks();
     persist();
     fanfare(); vib([60, 40, 60, 40, 120]);
-    banner = { txt: '🇰🇷 한국 도착! 세계 일주 완주!', life: 4, max: 4 };
+    banner = { txt: ch1 ? '🇰🇷 한국 동물원 도착!' : '🎉 탈출 성공! 자유다!', life: 3, max: 3 };
+    $('cl-title').textContent = ch1 ? '💕 THE END 💕' : '🎉 동물원 탈출 성공!';
+    $('cl-sub').textContent = ch1 ? '캥거루는 한국 동물원에서 운명의 짝을 만났어요' : '둘이 함께 자유를 찾았어요. 이제 같이 세계 일주!';
+    $('cl-bonus').textContent = ch1 ? '🪙 +100 보너스' : '🪙 +150 보너스';
+    $('b-lap').textContent = ch1 ? '2부: 동물원 탈출! 🏃' : '둘이서 세계 일주! (더 빨라요)';
     setTimeout(() => {
       if (state !== 'clear') return;
       $('cl-score').textContent = score;
       $('cl-badge').innerHTML = unlocked ? `<span class="badge">🎉 ${unlocked.name} 해금!</span>` : (lap > 0 ? `<span class="badge">${lap + 1}바퀴 완주!</span>` : '');
       show('s-clear');
-    }, 1600);
+    }, ch1 ? 5200 : 2000);
   }
 
   // ---------- 하늘 (시간 기준: 한 바퀴 약 110초) ----------
@@ -818,7 +861,7 @@
   }
   function drawGround() {
     ctx.fillStyle = regionColor('ground'); ctx.fillRect(-20, groundY, W + 40, H - groundY + 20);
-    if (blend >= 1) { patOX = -((dist || t * 70) % 84); patOY = groundY; ctx.globalAlpha = 0.22; ctx.fillStyle = wcFillFor(ctx, REGIONS[curRegion].ground); ctx.fillRect(-20, groundY, W + 40, H - groundY + 20); ctx.globalAlpha = 1; }
+    if (blend >= 1) { patOX = -((dist || t * 70) % 84); patOY = groundY; ctx.globalAlpha = 0.22; ctx.fillStyle = wcFillFor(ctx, route[curRegion].ground); ctx.fillRect(-20, groundY, W + 40, H - groundY + 20); ctx.globalAlpha = 1; }
     ctx.fillStyle = regionColor('line'); ctx.fillRect(-20, groundY, W + 40, 3);
     ctx.fillStyle = regionColor('dirt');
     const off = (dist || t * 70) % 60;
@@ -928,6 +971,7 @@
         roof(b - 64, x + 20, x + 150); RR(x + 40, b - 90, 90, 12, 1); F('#b03a2e'); roof(b - 88, x + 40, x + 130);
         break;
       }
+      default: drawZooMark(m, x, b);
     }
     ctx.restore();
   }
@@ -1356,6 +1400,12 @@
       wcShape(g, '#c9a25a', () => { if (g.roundRect) g.roundRect(39, -64, 10, 8, [4, 4, 1, 1]); else g.rect(39, -64, 10, 8); }, 1.2);
       g.fillStyle = '#7a5a2a'; g.fillRect(39, -59, 10, 1.8);
     }
+    if (ch.bow) {
+      wcShape(g, '#ff7aa8', () => { g.moveTo(41, -57); g.lineTo(35.5, -61); g.lineTo(36, -53.5); g.closePath(); }, 1.1);
+      wcShape(g, '#ff7aa8', () => { g.moveTo(41, -57); g.lineTo(46.5, -61.5); g.lineTo(46, -53); g.closePath(); }, 1.1);
+      wcShape(g, '#ff4f8a', () => addEll(g, 41, -57, 1.9, 1.9), 1);
+      g.strokeStyle = WC_LINE; g.lineWidth = 0.7; g.beginPath(); g.moveTo(44.5, -46); g.lineTo(46, -47.4); g.moveTo(45.5, -45.4); g.lineTo(47.4, -46.4); g.stroke();
+    }
     // 눈 (기본은 졸린 듯 차분한 눈)
     const ex = 46.4, ey = -50.2;
     g.strokeStyle = WC_LINE; g.fillStyle = WC_LINE; g.lineCap = 'round';
@@ -1737,7 +1787,7 @@
       ctx.translate(cx, cy); ctx.rotate(o.rot || 0); ctx.translate(-cx, -cy);
     }
     if (o.drawH && o.drawH !== o.h) { const by = o.y + o.h; ctx.translate(0, by); ctx.scale(1, o.h / o.drawH); ctx.translate(0, -by); }
-    const x = o.x, b = o.y + o.h, w = o.w, h = o.drawH || o.h, R = REGIONS[curRegion];
+    const x = o.x, b = o.y + o.h, w = o.w, h = o.drawH || o.h, R = route[curRegion];
     switch (o.type) {
       case 'bird': drawBird(o); break;
       case 'rock': rockShape(x, b, w, h, R.rock); break;
@@ -1908,6 +1958,51 @@
         ctx.beginPath(); ctx.moveTo(x + 9, b - 30); ctx.lineTo(x + 13, b - 37); ctx.lineTo(x + 15, b - 28); ctx.closePath(); P('#f5f1e8', 1.2);
         E(x + 2, b - 22, 4.5, 3.2); P('#f5f1e8', 1); E(x - 1.5, b - 22.5, 1.6, 1.4); F('#222'); eye(x + 6, b - 26);
         break;
+      case 'fence':
+        for (const px of [2, 22, 42]) { RR(x + px, b - 24, 6, 24, 1); P('#f4f0e6', 1.3); }
+        RR(x, b - 19, 50, 4, 1); P('#f4f0e6', 1.3); RR(x, b - 10, 50, 4, 1); P('#f4f0e6', 1.3);
+        break;
+      case 'trashcan':
+        RR(x + 1, b - 26, 20, 26, 3); P('#5f9a6a');
+        RR(x - 1, b - 30, 24, 5, 2); P('#4c8257');
+        ctx.strokeStyle = 'rgba(255,255,255,0.5)'; ctx.lineWidth = 1.4;
+        for (const lx of [6, 11, 16]) { ctx.beginPath(); ctx.moveTo(x + lx, b - 22); ctx.lineTo(x + lx, b - 4); ctx.stroke(); }
+        break;
+      case 'icecart':
+        ctx.strokeStyle = '#6a6a6a'; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(x + 22, b - 22); ctx.lineTo(x + 22, b - 34); ctx.stroke();
+        E(x + 22, b - 34, 18, 7, Math.PI, Math.PI * 2); P('#ff9eb5');
+        ctx.fillStyle = '#ffffff'; for (const sx of [-12, 0, 12]) { ctx.beginPath(); ctx.moveTo(x + 22, b - 41); ctx.lineTo(x + 22 + sx - 3, b - 34); ctx.lineTo(x + 22 + sx + 3, b - 34); ctx.fill(); }
+        RR(x + 4, b - 22, 36, 14, 3); P('#fbe3ea');
+        E(x + 14, b - 15, 3.5, 3.5); F('#ffd34d'); E(x + 22, b - 15, 3.5, 3.5); F('#9fd88a'); E(x + 30, b - 15, 3.5, 3.5); F('#ff8fab');
+        for (const wx of [11, 33]) { E(x + wx, b - 4, 4, 4); P('#555'); }
+        break;
+      case 'keeper': drawKeeper(x, b, -1); break;
+      case 'cone':
+        ctx.beginPath(); ctx.moveTo(x + 2, b - 3); ctx.lineTo(x + 7, b - 24); ctx.lineTo(x + 11, b - 24); ctx.lineTo(x + 16, b - 3); ctx.closePath(); P('#ff8a3a');
+        RR(x, b - 4, 18, 4, 1); P('#ff8a3a');
+        ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.moveTo(x + 5, b - 14); ctx.lineTo(x + 13, b - 14); ctx.lineTo(x + 12, b - 10); ctx.lineTo(x + 6, b - 10); ctx.closePath(); ctx.fill();
+        break;
+      case 'stroller':
+        for (const wx of [7, 27]) { E(x + wx, b - 4, 4, 4); P('#555'); }
+        ctx.strokeStyle = '#555'; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(x + 7, b - 8); ctx.lineTo(x + 12, b - 14); ctx.moveTo(x + 27, b - 8); ctx.lineTo(x + 22, b - 14); ctx.moveTo(x + 32, b - 18); ctx.lineTo(x + 36, b - 30); ctx.stroke();
+        RR(x + 2, b - 22, 30, 10, 5); P('#9ec9f0');
+        ctx.beginPath(); ctx.moveTo(x + 4, b - 20); ctx.quadraticCurveTo(x + 4, b - 34, x + 18, b - 34); ctx.lineTo(x + 18, b - 20); ctx.closePath(); P('#7aa9dc');
+        break;
+      case 'bars':
+        RR(x, b - h, w, 7, 2); P('#6d7280'); RR(x, b - 7, w, 7, 2); P('#6d7280');
+        for (let i = 0; i < 5; i++) { RR(x + 3 + i * 8, b - h + 5, 4, h - 10, 2); P('#8a909e', 1.2); }
+        RR(x + 6, b - h * 0.55, w - 12, 16, 3); P('#ffd34d', 1.2);
+        text('출입금지', x + w / 2, b - h * 0.55 + 8, 7.5, '#7a3a10', 'center', 900);
+        break;
+      case 'balloons': {
+        ctx.strokeStyle = '#8a7a6a'; ctx.lineWidth = 0.9;
+        const tops = [[8, 150], [20, 160], [30, 148], [14, 132], [27, 128], [20, 112]];
+        for (const [bx, by] of tops) { ctx.beginPath(); ctx.moveTo(x + w / 2, b - 6); ctx.quadraticCurveTo(x + bx, b - by * 0.5, x + bx, b - by + 9); ctx.stroke(); }
+        RR(x + w / 2 - 6, b - 8, 12, 8, 2); P('#a88a6a');
+        const cols = ['#ff7a8a', '#ffd34d', '#7ac8f0', '#9fd88a', '#c79bf0', '#ffa86a'];
+        tops.forEach(([bx, by], i) => { E(x + bx, b - by, 8, 10); P(cols[i]); E(x + bx - 2.5, b - by - 3, 2, 3); F('rgba(255,255,255,0.6)'); });
+        break;
+      }
       case 'jangdok': jangdok(x, b, 1); break;
       case 'jangdoks': jangdok(x, b, 1); jangdok(x + 30, b, 0.85); break;
       case 'harubang':
@@ -1934,6 +2029,67 @@
     lineCol = OUTL; lineMul = 0.8;
   }
 
+  // ---------- 사육사 ----------
+  function drawKeeper(x, b, dir) {
+    ctx.save();
+    if (dir < 0) { ctx.translate(x + 24, 0); ctx.scale(-1, 1); x = 0; }
+    const run = Math.sin(t * 14) * 3;
+    ctx.strokeStyle = '#3e4a2e'; ctx.lineWidth = 4; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(x + 10, b - 18); ctx.lineTo(x + 8 + run, b - 1); ctx.moveTo(x + 14, b - 18); ctx.lineTo(x + 16 - run, b - 1); ctx.stroke();
+    RR(x + 5, b - 36, 14, 20, 4); P('#6f9a52');
+    RR(x + 5, b - 22, 14, 4, 1); P('#5a4030');
+    E(x + 12, b - 42, 6, 6); P('#f2c9a4');
+    E(x + 12, b - 46, 6.5, 3, Math.PI, Math.PI * 2); P('#6f9a52'); RR(x + 12, b - 47, 8, 2.2, 1); P('#6f9a52', 1);
+    ctx.fillStyle = '#222'; ctx.beginPath(); ctx.arc(x + 15, b - 42, 0.9, 0, Math.PI * 2); ctx.fill();
+    // 잠자리채
+    ctx.strokeStyle = '#8a6a4a'; ctx.lineWidth = 1.8; ctx.beginPath(); ctx.moveTo(x + 16, b - 30); ctx.lineTo(x + 28, b - 44); ctx.stroke();
+    ctx.strokeStyle = '#555'; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.ellipse(x + 31, b - 48, 5, 6, -0.6, 0, Math.PI * 2); ctx.stroke();
+    ctx.strokeStyle = 'rgba(80,80,80,0.5)'; ctx.lineWidth = 0.7;
+    ctx.beginPath(); ctx.moveTo(x + 28, b - 52); ctx.lineTo(x + 34, b - 44); ctx.moveTo(x + 27, b - 47); ctx.lineTo(x + 35, b - 49); ctx.stroke();
+    ctx.restore();
+  }
+  // ---------- 동물원 배경 ----------
+  function drawZooMark(m, x, b) {
+    switch (m.kind) {
+      case 'cage': {
+        RR(x, b - 70, 150, 70, 2); F('#e6dcc6');
+        E(x + 60, b - 18, 22, 12); F('#c98a4a'); E(x + 40, b - 26, 9, 9); F('#c98a4a'); E(x + 40, b - 26, 13, 13); F('rgba(150,90,40,0.35)');
+        ctx.strokeStyle = '#7d8290'; ctx.lineWidth = 2.4;
+        for (let i = 0; i <= 15; i++) { ctx.beginPath(); ctx.moveTo(x + i * 10, b - 70); ctx.lineTo(x + i * 10, b); ctx.stroke(); }
+        RR(x - 3, b - 74, 156, 6, 2); F('#6d7280');
+        break;
+      }
+      case 'ferris': {
+        const cx = x + 70, cy = b - 84, r = 62;
+        ctx.strokeStyle = '#f0f0f0'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.stroke();
+        ctx.lineWidth = 1;
+        const cols = ['#ff7a8a', '#ffd34d', '#7ac8f0', '#9fd88a', '#c79bf0', '#ffa86a'];
+        for (let i = 0; i < 12; i++) { const a = i / 12 * Math.PI * 2 + t * 0.15; ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + Math.cos(a) * r, cy + Math.sin(a) * r); ctx.stroke();
+          RR(cx + Math.cos(a) * r - 4, cy + Math.sin(a) * r, 8, 7, 2); F(cols[i % 6]); }
+        ctx.strokeStyle = '#d8d8d8'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(cx - 34, b); ctx.lineTo(cx, cy); ctx.lineTo(cx + 34, b); ctx.stroke();
+        break;
+      }
+      case 'zoogate':
+        drawGate(x, b, '한국 동물원', '#3f7a4a');
+        break;
+    }
+  }
+  function drawGate(x, b, label, col) {
+    RR(x, b - 100, 14, 100, 2); P('#c9a86a'); RR(x + 136, b - 100, 14, 100, 2); P('#c9a86a');
+    ctx.beginPath(); ctx.moveTo(x - 6, b - 100); ctx.quadraticCurveTo(x + 75, b - 142, x + 156, b - 100); ctx.lineTo(x + 156, b - 92); ctx.quadraticCurveTo(x + 75, b - 132, x - 6, b - 92); ctx.closePath(); P(col);
+    RR(x + 25, b - 128, 100, 22, 6); P('#fff8e6');
+    text(label, x + 75, b - 116.5, 13, col, 'center', 900);
+    E(x + 7, b - 104, 8, 8); P('#ffd34d'); E(x + 143, b - 104, 8, 8); P('#ff9eb5');
+  }
+
+  // ---------- 짝 캥거루 ----------
+  const PARTNER = { id: 'partner', name: '짝', fur: '#e6a184', light: '#fde9dc', dark: '#c07a5c', ear: '#f7a8b8', eye: '#3a2414', bow: true };
+  function drawPartner(px, py, face, o) {
+    ctx.save();
+    if (face < 0) { ctx.translate(px + 52, py); ctx.scale(-1, 1); } else ctx.translate(px, py);
+    drawRoo(ctx, PARTNER, o);
+    ctx.restore();
+  }
   function drawCoin(c) {
     const w = Math.max(1.2, Math.abs(Math.cos(t * 5 + c.x * 0.03)) * 7);
     ctx.fillStyle = '#c48e12'; ctx.beginPath(); ctx.ellipse(c.x, c.y, w, 7, 0, 0, Math.PI * 2); ctx.fill();
@@ -1951,13 +2107,13 @@
     ctx.restore();
   }
   function drawFinish() {
-    const lp = lapPos();
-    if (state !== 'clear' && lp < FINISH - 70) return;
-    const x = state === 'clear' ? roo.x + 70 : roo.x + 30 + (FINISH - lp) * 12;
+    const lp = lapPos(), fin = routeLen();
+    if (state !== 'clear' && lp < fin - 70) return;
+    const x = state === 'clear' ? roo.x - 30 : roo.x - 30 + (fin - lp) * 12;
     if (x > W + 60) return;
-    RR(x, groundY - 110, 7, 110, 2); P('#f4f4f4'); RR(x + 90, groundY - 110, 7, 110, 2); P('#f4f4f4');
-    RR(x - 4, groundY - 124, 105, 26, 6); P('#ffffff');
-    text('🇰🇷 도착!', x + 48.5, groundY - 110.5, 15, '#c0392b', 'center', 900);
+    patOX = x; patOY = groundY; lineCol = '#3a2010'; lineMul = 1;
+    if (chapter === 1) drawGate(x, groundY, '🇰🇷 한국 동물원', '#3f7a4a'); else drawGate(x, groundY, '🚪 출구 EXIT', '#b0452e');
+    lineCol = OUTL; lineMul = 0.8;
   }
 
   function text(str, x, y, size, color, align = 'center', weight = 800) {
@@ -1975,14 +2131,14 @@
   const hudY = () => Math.max(26, groundY - 250);
 
   function drawMap(y, col) {
-    const x0 = 28, x1 = W - 28, seg = (x1 - x0) / 6;
+    const x0 = 28, x1 = W - 28, seg = (x1 - x0) / route.length;
     ctx.strokeStyle = col; ctx.globalAlpha = 0.35; ctx.lineWidth = 3;
     ctx.beginPath(); ctx.moveTo(x0, y); ctx.lineTo(x1, y); ctx.stroke(); ctx.globalAlpha = 1;
-    const prog = Math.max(0, Math.min(1, lapPos() / FINISH));
+    const prog = Math.max(0, Math.min(1, lapPos() / routeLen()));
     ctx.strokeStyle = '#ffb347'; ctx.lineWidth = 3;
     ctx.beginPath(); ctx.moveTo(x0, y); ctx.lineTo(x0 + (x1 - x0) * prog, y); ctx.stroke();
     ctx.font = '11px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    REGIONS.forEach((r, i) => { ctx.globalAlpha = i <= curRegion ? 1 : 0.45; ctx.fillText(r.flag, x0 + seg * i + seg / 2, y + 12); });
+    route.forEach((r, i) => { ctx.globalAlpha = i <= curRegion ? 1 : 0.45; ctx.fillText(r.flag, x0 + seg * i + seg / 2, y + 12); });
     ctx.globalAlpha = 1;
     ctx.save(); ctx.translate(x0 + (x1 - x0) * prog - 4, y + 3); ctx.scale(0.24, 0.24);
     drawRoo(ctx, charById(save.sel), { air: false, dead: false, bob: 0, tilt: 0, time: 0 }); ctx.restore();
@@ -2013,7 +2169,8 @@
     for (const o of obs) drawObs(o);
     for (const d of dust) {
       ctx.fillStyle = `rgba(${d.c},${Math.max(0, d.life / d.max) * 0.85})`;
-      if (d.star) { const r = 4.5; ctx.beginPath(); for (let k = 0; k < 8; k++) { const a = k * Math.PI / 4 + t * 4, rr = k % 2 ? r * 0.38 : r; ctx.lineTo(d.x + Math.cos(a) * rr, d.y + Math.sin(a) * rr); } ctx.closePath(); ctx.fill(); }
+      if (d.heart) { text('♥', d.x, d.y, 14, `rgba(${d.c},${Math.max(0, d.life / d.max)})`, 'center', 900); }
+      else if (d.star) { const r = 4.5; ctx.beginPath(); for (let k = 0; k < 8; k++) { const a = k * Math.PI / 4 + t * 4, rr = k % 2 ? r * 0.38 : r; ctx.lineTo(d.x + Math.cos(a) * rr, d.y + Math.sin(a) * rr); } ctx.closePath(); ctx.fill(); }
       else { ctx.beginPath(); ctx.arc(d.x, d.y, d.still ? 2.2 : 3, 0, Math.PI * 2); ctx.fill(); }
     }
     for (const f of fx) {
@@ -2021,6 +2178,14 @@
       ctx.beginPath(); ctx.ellipse(f.x, f.y, f.r * (f.flat ? 1.6 : 1), f.flat ? f.r * 0.35 : f.r, 0, 0, Math.PI * 2); ctx.stroke();
     }
 
+    if (partner) {
+      if (state === 'play' && chapter === 2) { yHist.push(roo.y); if (yHist.length > 9) yHist.shift(); partner.y = yHist[0]; }
+      const py = partner.y != null && chapter === 2 && state !== 'clear' ? partner.y : groundY;
+      const pAir = py < groundY - 1, moving = state === 'play' || (state === 'clear' && partner.x > roo.x + 64.5);
+      const pb = (!pAir && moving) ? -Math.abs(Math.sin(t * 11 + 1)) * 6 : 0;
+      const pm = state === 'clear' && chapter === 1 && storyT > 2.4 ? { air: true, vy: -1 } : { air: pAir, vy: pAir ? -1 : 0 };
+      drawPartner(partner.x, py, partner.face || 1, { air: pm.air, vy: pm.vy, dead: false, bob: pb, tilt: 0, time: t + 0.7, run: moving });
+    }
     const ch = charById(save.sel);
     let bob = 0, tilt = 0;
     const air = !roo.onGround;
@@ -2050,7 +2215,8 @@
     const night = sk.n > 0.5;
     for (const p of pops) {
       const a = Math.min(1, p.life * 2);
-      if (p.big) { ctx.globalAlpha = a; pill(p.txt, p.x, p.y, 13, 'rgba(192,57,43,0.92)', '#fff'); ctx.globalAlpha = 1; }
+      if (p.say) { ctx.globalAlpha = a; pill(p.txt, p.x, p.y, 11, 'rgba(255,255,255,0.96)', '#6b3416'); ctx.globalAlpha = 1; }
+      else if (p.big) { ctx.globalAlpha = a; pill(p.txt, p.x, p.y, 13, 'rgba(192,57,43,0.92)', '#fff'); ctx.globalAlpha = 1; }
       else text(p.txt, p.x, p.y, 14, `rgba(255,255,255,${a})`, 'center', 900);
     }
 

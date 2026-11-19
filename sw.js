@@ -1,5 +1,5 @@
 // 앱을 설치하면 인터넷 없이도 실행되도록 파일을 저장해 둡니다.
-const CACHE = 'roo-jump-v10';
+const CACHE = 'roo-jump-v11';
 const FILES = ['./', './index.html', './manifest.json', './icons/icon-192.png', './icons/icon-512.png', './icons/icon-maskable-512.png'];
 
 self.addEventListener('install', e => {
